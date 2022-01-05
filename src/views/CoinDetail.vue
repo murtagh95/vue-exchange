@@ -1,6 +1,13 @@
 <template>
   <div class="flex-col">
-    <template v-if="asset.id">
+    <div class="flex justify-center">
+      <bounce-loader
+        :loading="isLoading"
+        :color="'#68d391'"
+        :size="100"
+      ></bounce-loader>
+    </div>
+    <template v-if="!isLoading">
       <div class="flex flex-col sm:flex-row justify-around items-center">
         <div class="flex flex-col items-center">
           <img
@@ -63,8 +70,15 @@
           <span class="text-xl"></span>
         </div>
       </div>
+      <line-chart
+        class="my-10"
+        :color="['orange']"
+        :min="min"
+        :max="max"
+        :data="charData"
+      >
+      </line-chart>
     </template>
-    <p v-else>Error</p>
   </div>
 </template>
 <script>
@@ -77,6 +91,8 @@ export default {
     return {
       asset: {},
       history: [],
+      historyPrice: [],
+      isLoading: false,
     };
   },
 
@@ -86,27 +102,44 @@ export default {
 
   computed: {
     min() {
-      return Math.min(...this.history);
+      return Math.min(...this.historyPrice);
     },
     max() {
-      return Math.max(...this.history);
+      return Math.max(...this.historyPrice);
     },
 
     avg() {
-      return Math.abs(...this.history);
+      return Math.abs(...this.historyPrice);
+    },
+
+    charData() {
+      const data = [];
+      this.history.map((h) => {
+        data.push([h.date, parseFloat(h.priceUsd).toFixed(2)]);
+      });
+      return data;
     },
   },
 
   methods: {
     async getCoin() {
       const id = this.$route.params.id;
+      this.isLoading = true;
 
-      Promise.all([CoinCap.getAsset(id), CoinCap.getAssetHistory(id)]).then(
-        ([asset, history]) => {
+      Promise.all([CoinCap.getAsset(id), CoinCap.getAssetHistory(id)])
+        .then(([asset, history]) => {
           this.asset = asset;
-          this.history = history.map((e) => parseFloat(e.priceUsd).toFixed(2));
-        }
-      );
+          this.historyPrice = history.map((e) =>
+            parseFloat(e.priceUsd).toFixed(2)
+          );
+          this.history = history;
+        })
+        .catch(() =>
+          this.$router.push({
+            name: "error",
+          })
+        )
+        .finally(() => (this.isLoading = false));
     },
   },
 };
