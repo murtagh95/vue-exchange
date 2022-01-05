@@ -6,4 +6,25 @@ export default class CoinCap {
     response = await response.json();
     return response.data;
   }
+
+  static async getAsset(coin) {
+    let response = await fetch(`${this.url}assets/${coin}`);
+    response = await response.json();
+    return response.data;
+  }
+
+  static async getAssetHistory(coin) {
+    const now = new Date();
+
+    const end = now.getTime();
+
+    // today minus one day
+    now.setDate(now.getDate() - 1);
+    const start = now.getTime();
+
+    let url = `${this.url}assets/${coin}/history?interval=h1&start=${start}&end=${end}`;
+    let response = await fetch(url);
+    response = await response.json();
+    return response.data;
+  }
 }
