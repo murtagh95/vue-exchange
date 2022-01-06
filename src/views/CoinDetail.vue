@@ -70,6 +70,7 @@
           <span class="text-xl"></span>
         </div>
       </div>
+
       <line-chart
         class="my-10"
         :color="['orange']"
@@ -78,20 +79,51 @@
         :data="charData"
       >
       </line-chart>
+
+      <h3 class="text-xl my-10">Mejores Ofertas de Cambio</h3>
+      <table>
+        <tr
+          v-for="m in markets"
+          :key="`${m.exchangeId}-${m.priceUsd}`"
+          class="border-b"
+        >
+          <td>
+            <b>{{ m.exchangeId }}</b>
+          </td>
+          <td>{{ m.priceUsd | dollar }}</td>
+          <td>{{ m.baseSymbol }} / {{ m.quoteSymbol }}</td>
+          <td>
+            <px-button
+              v-if="!m.url"
+              @custom-click="getWebSite(m)"
+              :is-loading="m.isLoading || false"
+            >
+              {{ m.error || `Obtener link` }}
+            </px-button>
+            <a v-else class="hover:underline text-green-600" target="_blanck">{{
+              m.url
+            }}</a>
+          </td>
+        </tr>
+      </table>
     </template>
   </div>
 </template>
 <script>
 import CoinCap from "@/api.js";
+import PxButton from "@/components/PxButton";
 
 export default {
   name: "CoinDetail",
+  components: { PxButton },
 
   data() {
     return {
       asset: {},
       history: [],
       historyPrice: [],
+      markets: [],
+
       isLoading: false,
     };
   },
@@ -126,13 +158,18 @@ export default {
       const id = this.$route.params.id;
       this.isLoading = true;
 
-      Promise.all([CoinCap.getAsset(id), CoinCap.getAssetHistory(id)])
-        .then(([asset, history]) => {
+      Promise.all([
+        CoinCap.getAsset(id),
+        CoinCap.getAssetHistory(id),
+        CoinCap.getMarkets(id),
+      ])
+        .then(([asset, history, markets]) => {
           this.asset = asset;
           this.historyPrice = history.map((e) =>
             parseFloat(e.priceUsd).toFixed(2)
           );
           this.history = history;
+          this.markets = markets;
         })
         .catch(() =>
           this.$router.push({
@@ -140,6 +177,17 @@ export default {
           })
         )
         .finally(() => (this.isLoading = false));
+    },
+
+    async getWebSite(exchange) {
+      this.$set(exchange, "isLoading", true);
+      try {
+        let response = await CoinCap.getExchange(exchange.exchangeId);
+        this.$set(exchange, "url", response.exchangeUrl);
+      } catch (error) {
+        this.$set(exchange, "error", "Ha ocurrido un error");
+      }
+      this.$set(exchange, "isLoading", false);
     },
   },
 };

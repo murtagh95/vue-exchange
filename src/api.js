@@ -19,11 +19,23 @@ export default class CoinCap {
     const end = now.getTime();
 
     // today minus one day
-    now.setDate(now.getDate() - 1);
+    now.setDate(now.getDate() - 0.5);
     const start = now.getTime();
 
     let url = `${this.url}assets/${coin}/history?interval=h1&start=${start}&end=${end}`;
     let response = await fetch(url);
+    response = await response.json();
+    return response.data;
+  }
+
+  static async getMarkets(coin) {
+    let response = await fetch(`${this.url}assets/${coin}/markets?limit=5`);
+    response = await response.json();
+    return response.data;
+  }
+
+  static async getExchange(id) {
+    let response = await fetch(`${this.url}exchanges/${id}`);
     response = await response.json();
     return response.data;
   }
